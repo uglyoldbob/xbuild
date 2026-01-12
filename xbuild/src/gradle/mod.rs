@@ -66,6 +66,10 @@ pub fn build(env: &BuildEnv, libraries: Vec<(Target, PathBuf)>, out: &Path) -> R
         dependencies.push_str(&format!("implementation '{dep}'\n"));
     }
 
+    if let Some(true) = &config.libs {
+        dependencies.push_str("implementation fileTree(dir: 'libs', include: ['*.aar'])");
+    }
+
     let asset_packs = if config.assets.is_empty() {
         ""
     } else {
@@ -90,6 +94,7 @@ pub fn build(env: &BuildEnv, libraries: Vec<(Target, PathBuf)>, out: &Path) -> R
                 }}
                 {asset_packs}
             }}
+
             dependencies {{
                 {dependencies}
             }}
