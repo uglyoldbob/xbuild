@@ -66,8 +66,9 @@ pub fn build(env: &BuildEnv, libraries: Vec<(Target, PathBuf)>, out: &Path) -> R
         dependencies.push_str(&format!("implementation '{dep}'\n"));
     }
 
-    if let Some(true) = &config.libs {
-        dependencies.push_str("implementation fileTree(dir: 'libs', include: ['*.aar'])");
+    for aar in &config.aars {
+        let aar = env.root_dir().join(aar).as_os_str().to_str().unwrap().to_string();
+        dependencies.push_str(&format!("implementation files('{aar}.aar')\n"));
     }
 
     let asset_packs = if config.assets.is_empty() {
@@ -100,7 +101,6 @@ pub fn build(env: &BuildEnv, libraries: Vec<(Target, PathBuf)>, out: &Path) -> R
             }}
         "#,
     );
-
     let pack_name = "baseAssets";
     let base_assets = gradle.join(pack_name);
     // Make sure that any possibly-obsolete asset pack does not clobber the build
