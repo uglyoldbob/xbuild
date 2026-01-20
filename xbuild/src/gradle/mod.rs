@@ -32,6 +32,21 @@ pub fn prepare(env: &BuildEnv) -> Result<()> {
     Ok(())
 }
 
+/// Copy a folder from src to dst, recursively
+fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
+    std::fs::create_dir_all(&dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        } else {
+            std::fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        }
+    }
+    Ok(())
+}
+
 pub fn build(env: &BuildEnv, libraries: Vec<(Target, PathBuf)>, out: &Path) -> Result<()> {
     let platform_dir = env.platform_dir();
     let gradle = platform_dir.join("gradle");
@@ -181,6 +196,13 @@ pub fn build(env: &BuildEnv, libraries: Vec<(Target, PathBuf)>, out: &Path) -> R
         main.join("AndroidManifest.xml"),
         quick_xml::se::to_string(&manifest)?,
     )?;
+
+    if let Some(p) = &config.java_code_dir {
+        let dest_dir = main.join("java");
+        let _ = std::fs::remove_dir_all(&dest_dir);
+        let src_dir = env.root_dir().join(p);
+        copy_dir_all(src_dir, dest_dir)?;
+    }
 
     let srcs = [
         env.cargo().package_root().join("kotlin"),
