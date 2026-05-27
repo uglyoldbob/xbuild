@@ -432,6 +432,8 @@ pub struct AndroidConfig {
     pub dependencies: Vec<String>,
     #[serde(default)]
     pub aars: Vec<String>,
+    #[serde(default)]
+    pub java_code_dir: Option<String>,
     /// Defaults to [`false`], but uses [`true`] when the user builds a format that requires
     /// `gradle` (i.e. [`Format::Aab`]).
     #[serde(default)]
