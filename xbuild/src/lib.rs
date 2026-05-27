@@ -372,7 +372,7 @@ impl BuildTargetArgs {
             match store {
                 Store::Apple => vec![Arch::X64, Arch::Arm64],
                 Store::Microsoft => vec![Arch::X64],
-                Store::Play => vec![Arch::Arm64],
+                Store::Play => vec![Arch::Arm64, Arch::X64],
                 Store::Sideload => anyhow::bail!("sideload store requires arch arg"),
             }
         } else if let Some(device) = device.as_ref() {
