@@ -303,8 +303,9 @@ impl CargoBuild {
         let sdk_lib_dir = lib_dir.join(target_sdk_version.to_string());
         anyhow::ensure!(
             sdk_lib_dir.exists(),
-            "ndk doesn't support sdk version {}",
-            target_sdk_version
+            "ndk doesn't support sdk version {} in {:?}",
+            target_sdk_version,
+            sdk_lib_dir
         );
         self.use_ld("lld");
         self.add_link_arg(&format!("--target={ndk_versioned_triple}"));
@@ -312,9 +313,9 @@ impl CargoBuild {
         self.add_link_arg(&format!("-L{}", sdk_lib_dir.display()));
         self.add_link_arg(&format!("-L{}", lib_dir.display()));
         self.rust_flags
-            .push_str(" -C link-arg=-Wl,-z,max-page-size=16384 ");
+            .push_str(" -Clink-arg=-Wl,-z,max-page-size=16384 ");
         self.rust_flags
-            .push_str(" -C link-arg=-Wl,-z,common-page-size=16384 ");
+            .push_str(" -Clink-arg=-Wl,-z,common-page-size=16384 ");
         Ok(())
     }
 
