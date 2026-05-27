@@ -311,6 +311,10 @@ impl CargoBuild {
         self.add_link_arg(&format!("-B{}", sdk_lib_dir.display()));
         self.add_link_arg(&format!("-L{}", sdk_lib_dir.display()));
         self.add_link_arg(&format!("-L{}", lib_dir.display()));
+        self.rust_flags
+            .push_str(" -C link-arg=-Wl,-z,max-page-size=16384 ");
+        self.rust_flags
+            .push_str(" -C link-arg=-Wl,-z,common-page-size=16384 ");
         Ok(())
     }
 

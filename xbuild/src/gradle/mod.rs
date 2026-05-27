@@ -82,7 +82,13 @@ pub fn build(env: &BuildEnv, libraries: Vec<(Target, PathBuf)>, out: &Path) -> R
     }
 
     for aar in &config.aars {
-        let aar = env.root_dir().join(aar).as_os_str().to_str().unwrap().to_string();
+        let aar = env
+            .root_dir()
+            .join(aar)
+            .as_os_str()
+            .to_str()
+            .unwrap()
+            .to_string();
         dependencies.push_str(&format!("implementation files('{aar}.aar')\n"));
     }
 
