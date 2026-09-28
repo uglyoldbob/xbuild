@@ -371,6 +371,7 @@ impl CargoBuild {
         self.cfg_tool(Tool::Cxx, "clang++");
         self.cfg_tool(Tool::Ar, "llvm-ar");
         self.cfg_tool(Tool::Linker, "clang");
+        #[cfg(not(target_os = "macos"))]
         self.use_ld("lld");
         self.set_sysroot(&path);
         self.add_cxxflag("-stdlib=libc++");
