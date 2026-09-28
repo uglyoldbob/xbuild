@@ -1,4 +1,5 @@
 use crate::cargo::{Cargo, CargoBuild, CrateType};
+use crate::xcrun::Xcrun;
 use crate::config::Config;
 use crate::devices::Device;
 use anyhow::{ensure, Result};
@@ -18,6 +19,7 @@ macro_rules! exe {
 }
 
 pub mod cargo;
+pub mod xcrun;
 pub mod command;
 mod config;
 mod devices;
@@ -126,7 +128,6 @@ impl std::fmt::Display for Format {
 impl Format {
     pub fn platform_default(platform: Platform, opt: Opt, gradle: bool) -> Self {
         match (platform, opt) {
-            (Platform::Android, Opt::Release) if gradle => Self::Aab,
             (Platform::Android, _) => Self::Apk,
             (Platform::Ios, Opt::Debug) => Self::Appbundle,
             (Platform::Ios, Opt::Release) => Self::Ipa,
@@ -503,6 +504,7 @@ pub struct BuildEnv {
     cache_dir: PathBuf,
     icon: Option<PathBuf>,
     cargo: Cargo,
+    xcrun: Result<Xcrun, String>,
     config: Config,
     verbose: bool,
     offline: bool,
@@ -513,6 +515,7 @@ impl BuildEnv {
         let verbose = args.verbose;
         let offline = args.cargo.offline;
         let cargo = args.cargo.cargo()?;
+        let xcrun = Xcrun::new();
         let build_dir = cargo.target_dir().join("x");
         let cache_dir = dirs::cache_dir().unwrap().join("x");
         let package = cargo.manifest().package.as_ref().unwrap(); // Caller should guarantee that this is a valid package
@@ -528,6 +531,7 @@ impl BuildEnv {
             build_target,
             icon,
             cargo,
+            xcrun,
             config,
             build_dir,
             cache_dir,
@@ -600,6 +604,10 @@ impl BuildEnv {
 
     pub fn icon(&self) -> Option<&Path> {
         self.icon.as_deref()
+    }
+
+    pub fn xcrun(&self) -> &Result<Xcrun, String> {
+        &self.xcrun
     }
 
     pub fn cargo(&self) -> &Cargo {

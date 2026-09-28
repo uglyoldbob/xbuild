@@ -447,12 +447,20 @@ pub struct AndroidConfig {
     pub debug: AndroidDebugConfig,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub enum IosAssetsConfig {
+    /// the user provides a prebuilt assets.car file
+    PrebuiltCar(PathBuf),
+}
+
 #[derive(Clone, Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IosConfig {
     #[serde(flatten)]
     generic: GenericConfig,
-    pub assets_car: Option<PathBuf>,
+    pub swift_dir: Option<PathBuf>,
+    pub assets: Option<IosAssetsConfig>,
     pub info: InfoPlist,
 }
 

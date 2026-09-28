@@ -1,4 +1,5 @@
 use crate::cargo::CrateType;
+use crate::config::IosAssetsConfig;
 use crate::download::DownloadManager;
 use crate::task::TaskRunner;
 use crate::{BuildEnv, Format, Opt, Platform};
@@ -37,8 +38,35 @@ pub fn build(env: &BuildEnv) -> Result<()> {
         if env.target().platform() == Platform::Android && env.target().android_gradle {
             crate::gradle::prepare(env)?;
         }
+
+        if Platform::Ios == env.target().platform() {
+            if let Some(swift_dir) = &env.config().ios().swift_dir {
+                let mut files = Vec::new();
+
+                for entry in std::fs::read_dir(swift_dir)? {
+                    let path = entry?.path();
+
+                    if path.extension().is_some_and(|ext| ext == "swift") {
+                        files.push(path);
+                    }
+                }
+
+                files.sort();
+
+                if !files.is_empty() {
+                    let xcrun = env.xcrun().as_ref().expect("Need to have xcrun available when compiling swift files");
+                }
+
+                for f in &files {
+                    let thef = env.root_dir().join(f);
+                    log::error!("Need to compile {:?}", thef);
+                }
+            }
+        }
+
         for target in env.target().compile_targets() {
             let arch_dir = platform_dir.join(target.arch().to_string());
+
             let mut cargo = env.cargo_build(target, &arch_dir.join("cargo"))?;
             if !bin_target {
                 cargo.arg("--lib");
@@ -267,8 +295,12 @@ pub fn build(env: &BuildEnv) -> Result<()> {
             if let Some(provisioning_profile) = env.target().provisioning_profile() {
                 app.add_provisioning_profile(provisioning_profile)?;
             }
-            if let Some(assets_car) = env.config().ios().assets_car.as_ref() {
-                app.add_file(assets_car, "Assets.car".as_ref())?;
+            if let Some(assets_car) = env.config().ios().assets.as_ref() {
+                match assets_car {
+                    IosAssetsConfig::PrebuiltCar(assets_car) => {
+                        app.add_file(assets_car, "Assets.car".as_ref())?;
+                    }
+                }
             }
             app.finish(env.target().signer().cloned())?;
             if env.target().format() == Format::Ipa {
