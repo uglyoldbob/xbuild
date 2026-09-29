@@ -18,7 +18,7 @@ impl Xcrun {
         ))
     }
 
-    pub fn build_swift_code(&mut self, files: Vec<std::path::PathBuf>, output: &std::path::Path, target: &str,) -> Result<(), String> {
+    pub fn build_swift_code(&self, files: Vec<std::path::PathBuf>, output: &std::path::Path) -> Result<(), String> {
         let sdk = Self::ios_sdk_path()?;
         
         let mut c = Self::build_cmd();
@@ -34,7 +34,7 @@ impl Xcrun {
         ]);
         c.arg(&output);
         for f in files {
-            c.arg(f.display().to_string());
+            c.arg(f);
         }
         let output = c
             .output().map_err(|e| e.to_string())?;

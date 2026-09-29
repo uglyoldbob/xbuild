@@ -39,6 +39,9 @@ pub fn build(env: &BuildEnv) -> Result<()> {
             crate::gradle::prepare(env)?;
         }
 
+        let mut swift_out = env.output();
+        swift_out.push("swift.o");
+
         if Platform::Ios == env.target().platform() {
             if let Some(swift_dir) = &env.config().ios().swift_dir {
                 let mut files = Vec::new();
@@ -55,11 +58,7 @@ pub fn build(env: &BuildEnv) -> Result<()> {
 
                 if !files.is_empty() {
                     let xcrun = env.xcrun().as_ref().expect("Need to have xcrun available when compiling swift files");
-                }
-
-                for f in &files {
-                    let thef = env.root_dir().join(f);
-                    log::error!("Need to compile {:?}", thef);
+                    xcrun.build_swift_code(files, &swift_out).map_err(|e|anyhow::anyhow!("Failed to build compile swift: {e}"))?;
                 }
             }
         }
@@ -68,6 +67,9 @@ pub fn build(env: &BuildEnv) -> Result<()> {
             let arch_dir = platform_dir.join(target.arch().to_string());
 
             let mut cargo = env.cargo_build(target, &arch_dir.join("cargo"))?;
+            if swift_out.exists() {
+                cargo.add_link_arg(&format!("{}", swift_out.display()));
+            }
             if !bin_target {
                 cargo.arg("--lib");
             }
