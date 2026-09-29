@@ -41,6 +41,7 @@ pub fn build(env: &BuildEnv) -> Result<()> {
 
         let mut swift_out = env.output();
         swift_out.push("swift.o");
+        let mut swift_runtimes = None;
 
         if Platform::Ios == env.target().platform() {
             if let Some(swift_dir) = &env.config().ios().swift_dir {
@@ -58,7 +59,8 @@ pub fn build(env: &BuildEnv) -> Result<()> {
 
                 if !files.is_empty() {
                     let xcrun = env.xcrun().as_ref().expect("Need to have xcrun available when compiling swift files");
-                    xcrun.build_swift_code(files, &swift_out).map_err(|e|anyhow::anyhow!("Failed to build compile swift: {e}"))?;
+                    let a = xcrun.build_swift_code(files, &swift_out).map_err(|e|anyhow::anyhow!("Failed to build compile swift: {e}"))?;
+                    swift_runtimes = Some(a);
                 }
             }
         }
@@ -69,6 +71,11 @@ pub fn build(env: &BuildEnv) -> Result<()> {
             let mut cargo = env.cargo_build(target, &arch_dir.join("cargo"))?;
             if swift_out.exists() {
                 cargo.add_link_arg(&format!("{}", swift_out.display()));
+            }
+            if let Some(ref sr) = swift_runtimes {
+                for p in sr {
+                    cargo.add_lib_dir(p);
+                }
             }
             if !bin_target {
                 cargo.arg("--lib");
