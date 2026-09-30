@@ -408,6 +408,8 @@ pub struct GenericConfig {
     icon: Option<PathBuf>,
     #[serde(default)]
     runtime_libs: Vec<PathBuf>,
+    /// Features that must be enabled for cargo builds
+    pub features: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]

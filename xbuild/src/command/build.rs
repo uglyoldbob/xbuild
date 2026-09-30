@@ -70,10 +70,16 @@ pub fn build(env: &BuildEnv) -> Result<()> {
             }
         }
 
+        let features = env
+            .config()
+            .select_generic(env.target().platform(), |g| Some(&g.features))
+            .map(|e| e.clone())
+            .flatten();
+
         for target in env.target().compile_targets() {
             let arch_dir = platform_dir.join(target.arch().to_string());
 
-            let mut cargo = env.cargo_build(target, &arch_dir.join("cargo"))?;
+            let mut cargo = env.cargo_build(target, features.clone(), &arch_dir.join("cargo"))?;
             if swift_out.exists() {
                 cargo.add_link_arg(&format!("{}", swift_out.display()));
             }

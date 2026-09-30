@@ -115,6 +115,12 @@ impl Cargo {
         })
     }
 
+    pub fn add_feature(&mut self, feature: String) {
+        if !self.features.contains(&feature) {
+            self.features.push(feature);
+        }
+    }
+
     pub fn target_dir(&self) -> &Path {
         &self.target_dir
     }
@@ -151,10 +157,23 @@ impl Cargo {
         Ok(artifacts)
     }
 
-    pub fn build(&self, target: CompileTarget, target_dir: &Path) -> Result<CargoBuild> {
+    pub fn build(
+        &self,
+        target: CompileTarget,
+        features: Option<Vec<String>>,
+        target_dir: &Path,
+    ) -> Result<CargoBuild> {
+        let mut full_features = self.features.clone();
+        if let Some(features) = features {
+            for f in features {
+                if !full_features.contains(&f) {
+                    full_features.push(f);
+                }
+            }
+        }
         CargoBuild::new(
             target,
-            &self.features,
+            &full_features,
             self.no_default_features,
             self.package_root(),
             target_dir,

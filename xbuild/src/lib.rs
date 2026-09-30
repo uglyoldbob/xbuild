@@ -690,8 +690,17 @@ impl BuildEnv {
         }
     }
 
-    pub fn cargo_build(&self, target: CompileTarget, target_dir: &Path) -> Result<CargoBuild> {
-        let mut cargo = self.cargo.build(target, target_dir)?;
+    pub fn add_cargo_feature(&mut self, feature: String) {
+        self.cargo.add_feature(feature);
+    }
+
+    pub fn cargo_build(
+        &self,
+        target: CompileTarget,
+        features: Option<Vec<String>>,
+        target_dir: &Path,
+    ) -> Result<CargoBuild> {
+        let mut cargo = self.cargo.build(target, features, target_dir)?;
         if target.platform() == Platform::Linux {
             cargo.add_link_arg("-Wl,-rpath");
             cargo.add_link_arg("-Wl,$ORIGIN/lib");
