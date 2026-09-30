@@ -58,8 +58,13 @@ pub fn build(env: &BuildEnv) -> Result<()> {
                 files.sort();
 
                 if !files.is_empty() {
-                    let xcrun = env.xcrun().as_ref().expect("Need to have xcrun available when compiling swift files");
-                    let a = xcrun.build_swift_code(files, &swift_out).map_err(|e|anyhow::anyhow!("Failed to build compile swift: {e}"))?;
+                    let xcrun = env
+                        .xcrun()
+                        .as_ref()
+                        .expect("Need to have xcrun available when compiling swift files");
+                    let a = xcrun
+                        .build_swift_code(files, &swift_out)
+                        .map_err(|e| anyhow::anyhow!("Failed to build compile swift: {e}"))?;
                     swift_runtimes = Some(a);
                 }
             }

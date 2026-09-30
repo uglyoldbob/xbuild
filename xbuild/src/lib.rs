@@ -1,7 +1,7 @@
 use crate::cargo::{Cargo, CargoBuild, CrateType};
-use crate::xcrun::Xcrun;
 use crate::config::Config;
 use crate::devices::Device;
+use crate::xcrun::Xcrun;
 use anyhow::{ensure, Result};
 use clap::{Parser, ValueEnum};
 use std::path::{Path, PathBuf};
@@ -19,13 +19,13 @@ macro_rules! exe {
 }
 
 pub mod cargo;
-pub mod xcrun;
 pub mod command;
 mod config;
 mod devices;
 mod download;
 mod gradle;
 mod task;
+pub mod xcrun;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Opt {
@@ -332,6 +332,9 @@ pub struct BuildTargetArgs {
     /// Path to an api key.
     #[clap(long)]
     api_key: Option<PathBuf>,
+    #[clap(long)]
+    /// The name to use instead of manifest.yaml
+    manifest_name: Option<String>,
 }
 
 impl BuildTargetArgs {
@@ -519,15 +522,25 @@ impl BuildEnv {
         let build_dir = cargo.target_dir().join("x");
         let cache_dir = dirs::cache_dir().unwrap().join("x");
         let package = cargo.manifest().package.as_ref().unwrap(); // Caller should guarantee that this is a valid package
-        let manifest = cargo.package_root().join("manifest.yaml");
+        let manifest_name = args
+            .build_target
+            .manifest_name
+            .as_deref()
+            .unwrap_or("manifest.yaml");
+        let manifest = cargo.package_root().join(manifest_name);
         let mut config = Config::parse(manifest)?;
+        let name = config
+            .android()
+            .name_override
+            .clone()
+            .unwrap_or(package.name.clone());
         let build_target = args.build_target.build_target(&config)?;
         config.apply_rust_package(package, cargo.workspace_manifest(), build_target.opt())?;
         let icon = config
             .icon(build_target.platform())
             .map(|icon| cargo.package_root().join(icon));
         Ok(Self {
-            name: package.name.clone(),
+            name,
             build_target,
             icon,
             cargo,

@@ -69,7 +69,6 @@ pub fn build(env: &BuildEnv, libraries: Vec<(Target, PathBuf)>, out: &Path) -> R
     }
     std::fs::write(gradle.join("settings.gradle"), &temp_settings_gradle)?;
 
-    
     let mut manifest = config.manifest.clone();
 
     let package = manifest.package.take().unwrap_or_default();

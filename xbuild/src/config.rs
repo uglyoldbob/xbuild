@@ -445,6 +445,9 @@ pub struct AndroidConfig {
     /// Debug configuration for `x run`
     #[serde(default)]
     pub debug: AndroidDebugConfig,
+    #[serde(default)]
+    /// A name override for the android apk
+    pub name_override: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
