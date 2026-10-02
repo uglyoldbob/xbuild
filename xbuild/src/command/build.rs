@@ -71,9 +71,9 @@ pub fn build(env: &BuildEnv) -> Result<()> {
                         "arm64"
                     };
                     let target = if let Some(true) = env.target().sim {
-                        &format!("{}-apple-ios-simulator", arch)
+                        &format!("{}-apple-ios14.0-simulator", arch)
                     } else {
-                        &format!("{}-apple-ios", arch)
+                        &format!("{}-apple-ios14.0", arch)
                     };
                     let sdk = if let Some(true) = env.target().sim {
                         "iphonesimulator"

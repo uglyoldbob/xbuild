@@ -683,7 +683,11 @@ impl BuildEnv {
     }
 
     pub fn ios_sdk(&self) -> PathBuf {
-        self.cache_dir().join("iPhoneOS.sdk")
+        if let Some(true) = self.build_target.sim {
+            self.cache_dir().join("iPhoneSimulator.sdk")
+        } else {
+            self.cache_dir().join("iPhoneOS.sdk")
+        }
     }
 
     pub fn developer_disk_image(&self, major: u32, minor: u32) -> PathBuf {

@@ -64,6 +64,7 @@ impl Xcrun {
         for f in files {
             c.arg(f);
         }
+        log::error!("swift build {:?}", c);
         let output = c.output().map_err(|e| e.to_string())?;
         if !output.status.success() {
             return Err(String::from_utf8(output.stderr).unwrap());
