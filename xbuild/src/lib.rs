@@ -181,14 +181,16 @@ pub struct CompileTarget {
     platform: Platform,
     arch: Arch,
     opt: Opt,
+    sim: Option<bool>,
 }
 
 impl CompileTarget {
-    pub fn new(platform: Platform, arch: Arch, opt: Opt) -> Self {
+    pub fn new(platform: Platform, arch: Arch, opt: Opt, sim: Option<bool>) -> Self {
         Self {
             platform,
             arch,
             opt,
+            sim,
         }
     }
 
@@ -202,6 +204,10 @@ impl CompileTarget {
 
     pub fn opt(self) -> Opt {
         self.opt
+    }
+
+    pub fn sim(self) -> Option<bool> {
+        self.sim
     }
 
     pub fn android_abi(self) -> apk::Target {
@@ -226,7 +232,13 @@ impl CompileTarget {
     pub fn rust_triple(self) -> Result<&'static str> {
         Ok(match (self.arch, self.platform) {
             (Arch::Arm64, Platform::Android) => "aarch64-linux-android",
-            (Arch::Arm64, Platform::Ios) => "aarch64-apple-ios",
+            (Arch::Arm64, Platform::Ios) => {
+                if let Some(true) = self.sim {
+                    "aarch64-apple-ios-sim"
+                } else {
+                    "aarch64-apple-ios"
+                }
+            }
             (Arch::Arm64, Platform::Linux) => "aarch64-unknown-linux-gnu",
             (Arch::Arm64, Platform::Macos) => "aarch64-apple-darwin",
             (Arch::X64, Platform::Android) => "x86_64-linux-android",
@@ -335,6 +347,9 @@ pub struct BuildTargetArgs {
     #[clap(long)]
     /// The name to use instead of manifest.yaml
     manifest_name: Option<String>,
+    #[clap(long)]
+    /// Used to indicate a sim target
+    sim: Option<bool>,
 }
 
 impl BuildTargetArgs {
@@ -431,6 +446,7 @@ impl BuildTargetArgs {
             provisioning_profile,
             api_key,
             android_gradle,
+            sim: self.sim,
         })
     }
 }
@@ -447,6 +463,7 @@ pub struct BuildTarget {
     provisioning_profile: Option<Vec<u8>>,
     api_key: Option<PathBuf>,
     android_gradle: bool,
+    sim: Option<bool>,
 }
 
 impl BuildTarget {
@@ -477,7 +494,7 @@ impl BuildTarget {
     pub fn compile_targets(&self) -> impl Iterator<Item = CompileTarget> + '_ {
         self.archs
             .iter()
-            .map(|arch| CompileTarget::new(self.platform, *arch, self.opt))
+            .map(|arch| CompileTarget::new(self.platform, *arch, self.opt, self.sim))
     }
 
     pub fn is_host(&self) -> bool {

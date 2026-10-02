@@ -38,7 +38,12 @@ pub fn run(env: &BuildEnv, launch_args: &[String]) -> Result<()> {
 
 pub fn lldb(env: &BuildEnv) -> Result<()> {
     if let Some(device) = env.target().device() {
-        let target = CompileTarget::new(device.platform()?, device.arch()?, env.target().opt());
+        let target = CompileTarget::new(
+            device.platform()?,
+            device.arch()?,
+            env.target().opt(),
+            env.target().sim,
+        );
         let cargo_dir = env
             .build_dir()
             .join(target.opt().to_string())
