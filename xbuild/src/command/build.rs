@@ -62,8 +62,13 @@ pub fn build(env: &BuildEnv) -> Result<()> {
                         .xcrun()
                         .as_ref()
                         .expect("Need to have xcrun available when compiling swift files");
+                    let target = if let Some(true) = env.target().sim {
+                        "arm64-apple-ios-simulator"
+                    } else {
+                        "arm64-apple-ios"
+                    };
                     let a = xcrun
-                        .build_swift_code(files, &swift_out)
+                        .build_swift_code(files, &swift_out, target)
                         .map_err(|e| anyhow::anyhow!("Failed to build compile swift: {e}"))?;
                     swift_runtimes = Some(a);
                 }

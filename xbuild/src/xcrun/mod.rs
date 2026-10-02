@@ -3,10 +3,10 @@ use std::process::ExitStatus;
 pub struct Xcrun {}
 
 impl Xcrun {
-    fn swift_runtime_paths() -> Result<Vec<std::path::PathBuf>, String> {
+    fn swift_runtime_paths(target: &str) -> Result<Vec<std::path::PathBuf>, String> {
         let mut c = Self::build_cmd();
 
-        c.args(["swiftc", "-target", "arm64-apple-ios", "-print-target-info"]);
+        c.args(["swiftc", "-target", target, "-print-target-info"]);
         let output = c.output().map_err(|e| e.to_string())?;
 
         if !output.status.success() {
@@ -44,6 +44,7 @@ impl Xcrun {
         &self,
         files: Vec<std::path::PathBuf>,
         output: &std::path::Path,
+        target: &str,
     ) -> Result<Vec<std::path::PathBuf>, String> {
         let sdk = Self::ios_sdk_path()?;
 
@@ -51,7 +52,7 @@ impl Xcrun {
         c.args([
             "swiftc",
             "-target",
-            "arm64-apple-ios",
+            target,
             "-sdk",
             &sdk.display().to_string(),
             "-parse-as-library",
@@ -66,7 +67,7 @@ impl Xcrun {
         if !output.status.success() {
             return Err(String::from_utf8(output.stderr).unwrap());
         }
-        Self::swift_runtime_paths()
+        Self::swift_runtime_paths(target)
     }
 
     pub fn build_cmd() -> std::process::Command {
