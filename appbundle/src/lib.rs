@@ -210,56 +210,97 @@ impl AppBundle {
 
         if let Some(signer) = signer {
             println!("signing {}", self.appdir().display());
+
             anyhow::ensure!(
                 self.info.cf_bundle_identifier.is_some(),
                 "missing bundle identifier"
             );
+
             let mut signing_settings = SigningSettings::default();
+
             let cert =
                 CapturedX509Certificate::from_der(rasn::der::encode(signer.cert()).unwrap())?;
+
             let secret = signer.key().to_pkcs8_der().unwrap();
             let key = InMemorySigningKeyPair::from_pkcs8_der(secret.as_bytes())?;
+
             signing_settings.set_signing_key(&key, cert);
             signing_settings.chain_apple_certificates();
+
             signing_settings
                 .set_team_id_from_signing_certificate()
                 .context("signing certificate is missing team id")?;
+
             if self.development {
                 signing_settings.set_time_stamp_url("http://timestamp.apple.com/ts01")?;
             }
+
             if let Some(entitlements) = self.entitlements.as_ref() {
                 let mut buf = vec![];
                 entitlements.to_writer_xml(&mut buf)?;
                 let entitlements = std::str::from_utf8(&buf)?;
-                signing_settings.set_entitlements_xml(SettingsScope::Main, entitlements)?;
-            } else {
-                if self.ios() {
-                    log::error!("Adding debug permission to app");
-                    let mut entitlements = plist::Dictionary::new();
 
-                    entitlements.insert(
-                        "get-task-allow".into(),
-                        Value::Boolean(true),
-                    );
+                signing_settings.set_entitlements_xml(
+                    SettingsScope::Main,
+                    entitlements,
+                )?;
+            } else if self.ios() {
+                log::debug!("Adding debug permission to iOS app");
 
-                    let entitlements = Value::Dictionary(entitlements);
+                let mut entitlements = plist::Dictionary::new();
 
-                    let mut buf = vec![];
-                    entitlements.to_writer_xml(&mut buf)?;
+                entitlements.insert(
+                    "get-task-allow".into(),
+                    Value::Boolean(true),
+                );
 
-                    signing_settings.set_entitlements_xml(
-                        SettingsScope::Main,
-                        std::str::from_utf8(&buf)?,
-                    )?;
-                }
+                let entitlements = Value::Dictionary(entitlements);
+
+                let mut buf = vec![];
+                entitlements.to_writer_xml(&mut buf)?;
+
+                signing_settings.set_entitlements_xml(
+                    SettingsScope::Main,
+                    std::str::from_utf8(&buf)?,
+                )?;
             }
+
             if !self.ios() {
                 signing_settings
-                    .set_code_signature_flags(SettingsScope::Main, CodeSignatureFlags::RUNTIME);
+                    .set_code_signature_flags(
+                        SettingsScope::Main,
+                        CodeSignatureFlags::RUNTIME,
+                    );
             }
+
             let bundle_signer = BundleSigner::new_from_path(self.appdir())?;
-            bundle_signer.write_signed_bundle(self.appdir(), &signing_settings)?;
+            bundle_signer.write_signed_bundle(
+                self.appdir(),
+                &signing_settings,
+            )?;
+        } else if self.ios() {
+            log::debug!("No signer; adding simulator debug entitlement");
+
+            let mut entitlements = plist::Dictionary::new();
+
+            entitlements.insert(
+                "get-task-allow".into(),
+                Value::Boolean(true),
+            );
+
+            let entitlements = Value::Dictionary(entitlements);
+
+            let mut buf = vec![];
+            entitlements.to_writer_xml(&mut buf)?;
+
+            // Write the entitlement file alongside the app so that the
+            // simulator build has the debug entitlement available.
+            std::fs::write(
+                self.appdir().join("Entitlements.plist"),
+                &buf,
+            )?;
         }
+
         Ok(())
     }
 
