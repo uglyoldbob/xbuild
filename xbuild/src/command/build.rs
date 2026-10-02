@@ -67,8 +67,13 @@ pub fn build(env: &BuildEnv) -> Result<()> {
                     } else {
                         "arm64-apple-ios"
                     };
+                    let sdk = if let Some(true) = env.target().sim {
+                        "iphonesimulator"
+                    } else {
+                        "iphoneos"
+                    };
                     let a = xcrun
-                        .build_swift_code(files, &swift_out, target)
+                        .build_swift_code(files, &swift_out, target, sdk)
                         .map_err(|e| anyhow::anyhow!("Failed to build compile swift: {e}"))?;
                     swift_runtimes = Some(a);
                 }

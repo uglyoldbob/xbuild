@@ -25,9 +25,9 @@ impl Xcrun {
             .collect())
     }
 
-    fn ios_sdk_path() -> Result<std::path::PathBuf, String> {
+    fn ios_sdk_path(sdk: &str) -> Result<std::path::PathBuf, String> {
         let output = Self::build_cmd()
-            .args(["--sdk", "iphoneos", "--show-sdk-path"])
+            .args(["--sdk", sdk, "--show-sdk-path"])
             .output()
             .map_err(|e| e.to_string())?;
 
@@ -45,8 +45,9 @@ impl Xcrun {
         files: Vec<std::path::PathBuf>,
         output: &std::path::Path,
         target: &str,
+        sdk: &str,
     ) -> Result<Vec<std::path::PathBuf>, String> {
-        let sdk = Self::ios_sdk_path()?;
+        let sdk = Self::ios_sdk_path(sdk)?;
 
         let mut c = Self::build_cmd();
         c.args([
