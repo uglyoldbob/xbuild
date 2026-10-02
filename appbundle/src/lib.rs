@@ -232,6 +232,26 @@ impl AppBundle {
                 entitlements.to_writer_xml(&mut buf)?;
                 let entitlements = std::str::from_utf8(&buf)?;
                 signing_settings.set_entitlements_xml(SettingsScope::Main, entitlements)?;
+            } else {
+                if self.ios() {
+                    log::error!("Adding debug permission to app");
+                    let mut entitlements = plist::Dictionary::new();
+
+                    entitlements.insert(
+                        "get-task-allow".into(),
+                        Value::Boolean(true),
+                    );
+
+                    let entitlements = Value::Dictionary(entitlements);
+
+                    let mut buf = vec![];
+                    entitlements.to_writer_xml(&mut buf)?;
+
+                    signing_settings.set_entitlements_xml(
+                        SettingsScope::Main,
+                        std::str::from_utf8(&buf)?,
+                    )?;
+                }
             }
             if !self.ios() {
                 signing_settings
