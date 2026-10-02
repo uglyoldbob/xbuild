@@ -62,10 +62,18 @@ pub fn build(env: &BuildEnv) -> Result<()> {
                         .xcrun()
                         .as_ref()
                         .expect("Need to have xcrun available when compiling swift files");
-                    let target = if let Some(true) = env.target().sim {
-                        "arm64-apple-ios-simulator"
+                    let arch = if let Some(arch) = env.target().archs.get(0) {
+                        match arch {
+                            crate::Arch::Arm64 => "arm64",
+                            crate::Arch::X64 => "x86_64",
+                        }
                     } else {
-                        "arm64-apple-ios"
+                        "arm64"
+                    };
+                    let target = if let Some(true) = env.target().sim {
+                        &format!("{}-apple-ios-simulator", arch)
+                    } else {
+                        &format!("{}-apple-ios", arch)
                     };
                     let sdk = if let Some(true) = env.target().sim {
                         "iphonesimulator"

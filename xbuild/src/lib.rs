@@ -232,6 +232,7 @@ impl CompileTarget {
     pub fn rust_triple(self) -> Result<&'static str> {
         Ok(match (self.arch, self.platform) {
             (Arch::Arm64, Platform::Android) => "aarch64-linux-android",
+            (Arch::X64, Platform::Ios) => "x86_64-apple-ios",
             (Arch::Arm64, Platform::Ios) => {
                 if let Some(true) = self.sim {
                     "aarch64-apple-ios-sim"
