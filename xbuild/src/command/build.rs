@@ -29,6 +29,11 @@ pub fn build(env: &BuildEnv) -> Result<()> {
     runner.start_task(format!("Build rust `{}`", env.name));
     let bin_target = env.target().platform() != Platform::Android;
     let has_lib = env.root_dir().join("src").join("lib.rs").exists();
+
+    let mut swift_out = env.output();
+    swift_out.push("swift.o");
+    let mut swift_runtimes = None;
+
     if bin_target || has_lib {
         ensure!(
             env.target().format() != Format::Aab || env.target().android_gradle,
@@ -38,10 +43,6 @@ pub fn build(env: &BuildEnv) -> Result<()> {
         if env.target().platform() == Platform::Android && env.target().android_gradle {
             crate::gradle::prepare(env)?;
         }
-
-        let mut swift_out = env.output();
-        swift_out.push("swift.o");
-        let mut swift_runtimes = None;
 
         if Platform::Ios == env.target().platform() {
             if let Some(swift_dir) = &env.config().ios().swift_dir {
@@ -330,6 +331,52 @@ pub fn build(env: &BuildEnv) -> Result<()> {
             }
             let main = env.cargo_artefact(&arch_dir.join("cargo"), target, CrateType::Bin)?;
             app.add_executable(&main)?;
+            if swift_out.exists() {
+                let output = std::process::Command::new("otool")
+                    .args(["-L"])
+                    .arg(&main)
+                    .output()
+                    .map_err(|e| anyhow::anyhow!("failed to run otool: {e}"))?;
+
+                if !output.status.success() {
+                    anyhow::bail!("{}", String::from_utf8_lossy(&output.stderr));
+                }
+
+                let stdout = String::from_utf8(output.stdout)?;
+
+                let libs: Vec<String> = stdout
+                    .lines()
+                    .filter_map(|line| {
+                        let path = line.trim().split_whitespace().next()?;
+                        let name = Path::new(path).file_name()?.to_str()?;
+
+                        if name.starts_with("libswift") && name.ends_with(".dylib") {
+                            Some(name.to_owned())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+
+                if let Some(ref runtime_dirs) = swift_runtimes {
+                    for lib in libs {
+                        let path = runtime_dirs
+                            .iter()
+                            .map(|dir| dir.join(&lib))
+                            .find(|path| path.exists())
+                            .ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "Swift runtime library `{}` not found in {:?}",
+                                    lib,
+                                    runtime_dirs
+                                )
+                            })?;
+
+                        println!("Adding Swift runtime: {}", path.display());
+                        app.add_lib(&path)?;
+                    }
+                }
+            }
             if let Some(provisioning_profile) = env.target().provisioning_profile() {
                 app.add_provisioning_profile(provisioning_profile)?;
             }

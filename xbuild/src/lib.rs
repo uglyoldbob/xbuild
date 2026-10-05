@@ -472,6 +472,10 @@ impl BuildTarget {
         self.opt
     }
 
+    pub fn sim(&self) -> Option<bool> {
+        self.sim
+    }
+
     pub fn platform(&self) -> Platform {
         self.platform
     }
@@ -553,7 +557,12 @@ impl BuildEnv {
             .clone()
             .unwrap_or(package.name.clone());
         let build_target = args.build_target.build_target(&config)?;
-        config.apply_rust_package(package, cargo.workspace_manifest(), build_target.opt())?;
+        config.apply_rust_package(
+            package,
+            cargo.workspace_manifest(),
+            build_target.opt(),
+            build_target.sim(),
+        )?;
         let icon = config
             .icon(build_target.platform())
             .map(|icon| cargo.package_root().join(icon));

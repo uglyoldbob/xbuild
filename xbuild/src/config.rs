@@ -80,6 +80,7 @@ impl Config {
         manifest_package: &Package,
         workspace_manifest: Option<&Manifest>,
         opt: Opt,
+        sim: Option<bool>,
     ) -> Result<()> {
         // android
         let wry = self.android.wry;
@@ -101,7 +102,9 @@ impl Config {
                 // Unreachable:
                 .expect("Caller-provided workspace lacks `[workspace]` table");
 
-            workspace.package.as_ref().context("Failed to inherit field: `workspace.package` was not defined in workspace root manifest")
+            workspace.package.as_ref().context(
+                "Failed to inherit field: `workspace.package` was not defined in workspace root manifest",
+            )
         };
 
         let package_version = match &manifest_package.version {
@@ -109,7 +112,9 @@ impl Config {
             Inheritable::Inherited { workspace: true } => inherit_package_field()?
                 .version
                 .clone()
-                .context("Failed to inherit field: `workspace.package.version` was not defined in workspace root manifest")?,
+                .context(
+                    "Failed to inherit field: `workspace.package.version` was not defined in workspace root manifest",
+                )?,
             Inheritable::Inherited { workspace: false } => {
                 anyhow::bail!("`workspace=false` is unsupported")
             }
@@ -120,7 +125,9 @@ impl Config {
             Some(Inheritable::Inherited { workspace: true }) => inherit_package_field()?
                 .description
                 .clone()
-                .context("Failed to inherit field: `workspace.package.description` was not defined in workspace root manifest")?,
+                .context(
+                    "Failed to inherit field: `workspace.package.description` was not defined in workspace root manifest",
+                )?,
             Some(Inheritable::Inherited { workspace: false }) => {
                 anyhow::bail!("`workspace=false` is unsupported")
             }
@@ -218,6 +225,8 @@ impl Config {
 
         // ios
         let info = &mut self.ios.info;
+        let ios_simulator = sim == Some(true);
+
         info.cf_bundle_identifier
             .get_or_insert_with(|| manifest_package.name.clone());
         info.cf_bundle_name
@@ -228,19 +237,38 @@ impl Config {
             .get_or_insert_with(|| package_version.clone());
         info.cf_bundle_version
             .get_or_insert_with(|| package_version.clone());
-        info.cf_bundle_supported_platforms
-            .get_or_insert_with(|| vec!["iPhoneOS".into()]);
+
+        if ios_simulator {
+            info.cf_bundle_supported_platforms
+                .get_or_insert_with(|| vec!["iPhoneSimulator".into()]);
+        } else {
+            info.cf_bundle_supported_platforms
+                .get_or_insert_with(|| vec!["iPhoneOS".into()]);
+        }
 
         info.dt_compiler
             .get_or_insert_with(|| "com.apple.compilers.llvm.clang.1_0".into());
-        info.dt_platform_build.get_or_insert_with(|| "19C51".into());
-        info.dt_platform_name
-            .get_or_insert_with(|| "iphoneos".into());
-        info.dt_platform_version
-            .get_or_insert_with(|| "15.2".into());
-        info.dt_sdk_build.get_or_insert_with(|| "19C51".into());
-        info.dt_sdk_name
-            .get_or_insert_with(|| "iphoneos15.2".into());
+
+        if ios_simulator {
+            info.dt_platform_build.get_or_insert_with(|| "19C51".into());
+            info.dt_platform_name
+                .get_or_insert_with(|| "iphonesimulator".into());
+            info.dt_platform_version
+                .get_or_insert_with(|| "15.2".into());
+            info.dt_sdk_build.get_or_insert_with(|| "19C51".into());
+            info.dt_sdk_name
+                .get_or_insert_with(|| "iphonesimulator15.2".into());
+        } else {
+            info.dt_platform_build.get_or_insert_with(|| "19C51".into());
+            info.dt_platform_name
+                .get_or_insert_with(|| "iphoneos".into());
+            info.dt_platform_version
+                .get_or_insert_with(|| "15.2".into());
+            info.dt_sdk_build.get_or_insert_with(|| "19C51".into());
+            info.dt_sdk_name
+                .get_or_insert_with(|| "iphoneos15.2".into());
+        }
+
         info.dt_xcode.get_or_insert_with(|| "1321".into());
         info.dt_xcode_build.get_or_insert_with(|| "13C100".into());
 
@@ -250,15 +278,24 @@ impl Config {
             .get_or_insert_with(|| "14.0".to_string());
 
         info.ui_device_family.get_or_insert_with(|| vec![1, 2]);
+
         info.ui_launch_storyboard_name
             .get_or_insert_with(|| "".into());
-        info.ui_required_device_capabilities
-            .get_or_insert_with(|| vec!["arm64".into()]);
+
+        // UIRequiredDeviceCapabilities describes requirements of a physical
+        // device. Do not require arm64 for simulator builds, since simulators
+        // can be x86_64 or arm64.
+        if !ios_simulator {
+            info.ui_required_device_capabilities
+                .get_or_insert_with(|| vec!["arm64".into()]);
+        }
+
         let ipad_orientations = &mut info.ui_supported_interface_orientations_ipad;
         ipad_orientations.push("UIInterfaceOrientationPortrait".into());
         ipad_orientations.push("UIInterfaceOrientationPortraitUpsideDown".into());
         ipad_orientations.push("UIInterfaceOrientationLandscapeLeft".into());
         ipad_orientations.push("UIInterfaceOrientationLandscapeRight".into());
+
         let iphone_orientations = &mut info.ui_supported_interface_orientations_iphone;
         iphone_orientations.push("UIInterfaceOrientationPortrait".into());
         iphone_orientations.push("UIInterfaceOrientationLandscapeLeft".into());
