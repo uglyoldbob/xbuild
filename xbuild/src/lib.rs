@@ -327,8 +327,11 @@ pub struct BuildTargetArgs {
     arch: Option<Arch>,
     /// Build artifacts for target device. To find the device
     /// identifier of a connected device run `x devices`.
-    #[clap(long, conflicts_with = "store")]
+    #[clap(long, conflicts_with = "store", conflicts_with("first_device"))]
     device: Option<String>,
+    /// Use the first device found
+    #[clap(long, conflicts_with = "device")]
+    first_device: bool,
     /// Build artifacts with format.
     #[clap(long, conflicts_with = "store")]
     format: Option<Format>,
@@ -371,6 +374,15 @@ impl BuildTargetArgs {
                 .as_ref()
                 .map(|device| device.parse())
                 .transpose()?
+        };
+        let device = if self.first_device {
+            let a = Device::list()
+                .map(|devs| devs.into_iter().filter(|a| !a.is_host()).next())
+                .ok()
+                .flatten();
+            a
+        } else {
+            device
         };
         let platform = if let Some(platform) = self.platform {
             platform
@@ -442,6 +454,7 @@ impl BuildTargetArgs {
             archs,
             format,
             device,
+            first_device: self.first_device,
             store,
             signer,
             provisioning_profile,
@@ -459,6 +472,7 @@ pub struct BuildTarget {
     archs: Vec<Arch>,
     format: Format,
     device: Option<Device>,
+    first_device: bool,
     store: Option<Store>,
     signer: Option<Signer>,
     provisioning_profile: Option<Vec<u8>>,
